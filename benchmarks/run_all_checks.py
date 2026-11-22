@@ -149,13 +149,29 @@ def verify_all_and_build_datasets() -> dict:
             vecs.append(v)
             added += 1
 
+    l0_file = DATASETS_DIR / "l0_canon_12.jsonl"
+    reef_file = DATASETS_DIR / "coral_reef_v0_1.jsonl"
+    # Preserve any community-promoted polyps beyond the initial 48 deterministic base polyps
+    if reef_file.exists():
+        existing_rows = [json.loads(line) for line in reef_file.read_text(encoding="utf-8").splitlines() if line.strip()]
+        base_ids = {m.structural_id() for m in reef}
+        extra_rows = [r for r in existing_rows if r["id"] not in base_ids]
+        for r in extra_rows:
+            W_ex = [[complex(float(z[0]), float(z[1])) for z in row] for row in r["W"]]
+            p_ex = tuple(PortSpec(int(p["node"]), int(p["pol"]), int(p["ch"])) for p in r["ports"])
+            m_ex = Motif(W=W_ex, ports=p_ex, layer=int(r["layer"]), raw_nodes_collapsed=int(r["raw_nodes_collapsed"]),
+                         parents=tuple(r.get("parents", [])), wiring=tuple((int(w[0]), int(w[1]), str(w[2])) for w in r.get("wiring", [])))
+            assert m_ex.semantic_hash() == r["api_meaning_hash"]
+            reef.append(m_ex)
+        all_rows = [m.to_reef_record() for m in reef[:len(base_ids)]] + extra_rows
+    else:
+        all_rows = [m.to_reef_record() for m in reef]
+
     blind_acc = blind_coordination_accuracy(reef, sigma=0.025, trials_per_word=20, seed=42)
     assert blind_acc >= 0.97, f"Blind accuracy below gate: {blind_acc}"
 
-    l0_file = DATASETS_DIR / "l0_canon_12.jsonl"
-    reef_file = DATASETS_DIR / "coral_reef_v0_1.jsonl"
     l0_file.write_text("".join(json.dumps(m.to_reef_record()) + "\n" for m in l0), encoding="utf-8")
-    reef_file.write_text("".join(json.dumps(m.to_reef_record()) + "\n" for m in reef), encoding="utf-8")
+    reef_file.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in all_rows), encoding="utf-8")
 
     sums_lines = []
     for fp in (l0_file, reef_file):
