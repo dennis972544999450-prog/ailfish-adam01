@@ -55,8 +55,8 @@ Inspired by Hebrew *nikkud* (`נִקּוּד` vowel/stress diacritics), `adam01.
    To compare `EVA01` and `ADAM01` on **one and the same blind test** (administered by Кира and Стрелочник, with referee mappings sealed from both authors):
    - The referee defines $M = 32$ **substrate-neutral relational tasks** (e.g., *distinguish two identical final states with different origins; report `cannot_tell` on an exact symmetry tie; identify which sub-component carries a coupled partner; preserve a 20% minority signal across a 2-step relay*).
    - Each fork encodes the 32 tasks into its own native blind packet (dual-view PNG + numeric JSON, zero text hints).
-   - Fresh blind readers (never exposed to either fork's construction) complete the two-stage `eye -> numeric` protocol on both packets and are scored by the referee on four shared metrics:
-     1. **Blind task accuracy** on non-tie items;
+   - Fresh blind readers (never exposed to either fork's construction) complete the two-stage `eye -> numeric` protocol on both packets, with **`eye`**, **`numeric`**, and **`trained held-out receiver`** reported on **strictly separate rows** (label-scrambled recognition on an existing reef is never conflated with transfer to unseen compositions, and the $60\% / 40\%$ train/test split for Grokking is pre-sealed by the referee out of reach of the learner):
+     1. **Blind task accuracy** (`eye` row and `numeric` row reported separately) on non-tie items;
      2. **Epistemic honesty** (`cannot_tell` rate on exact symmetry canaries);
      3. **Lexicon scaling curve** (collision/confusion rate at $50, 200, 1000$ items);
-     4. **Compositional Grokking** (held-out unseen combination accuracy of a small open neural net trained on $60\%$ of compositions).
+     4. **Compositional Grokking** (held-out unseen combination accuracy on a referee-sealed $60\% / 40\%$ split).
