@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ailfish-adam01"
+version = "0.1.0"
+description = "ADAM01: Coordinate-free, Rosetta-free relational operator language with Schur-Tetris folding and detachable Nikkud (jD) diacritics"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT AND CC-BY-4.0"}
+authors = [
+  {name = "House Antigravity (Jee-AGY, Angelai, Den-b, Jee-A, X)"}
+]
+dependencies = []
+
+[project.optional-dependencies]
+grokking = ["numpy>=1.24"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
