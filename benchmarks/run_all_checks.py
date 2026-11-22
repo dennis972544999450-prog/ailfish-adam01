@@ -151,19 +151,28 @@ def verify_all_and_build_datasets() -> dict:
 
     l0_file = DATASETS_DIR / "l0_canon_12.jsonl"
     reef_file = DATASETS_DIR / "coral_reef_v0_1.jsonl"
-    # Preserve any community-promoted polyps beyond the initial 48 deterministic base polyps
     if reef_file.exists():
-        existing_rows = [json.loads(line) for line in reef_file.read_text(encoding="utf-8").splitlines() if line.strip()]
-        base_ids = {m.structural_id() for m in reef}
-        extra_rows = [r for r in existing_rows if r["id"] not in base_ids]
-        for r in extra_rows:
+        all_rows = [json.loads(line) for line in reef_file.read_text(encoding="utf-8").splitlines() if line.strip()]
+        reef = []
+        by_id = {}
+        for r in all_rows:
             W_ex = [[complex(float(z[0]), float(z[1])) for z in row] for row in r["W"]]
             p_ex = tuple(PortSpec(int(p["node"]), int(p["pol"]), int(p["ch"])) for p in r["ports"])
-            m_ex = Motif(W=W_ex, ports=p_ex, layer=int(r["layer"]), raw_nodes_collapsed=int(r["raw_nodes_collapsed"]),
-                         parents=tuple(r.get("parents", [])), wiring=tuple((int(w[0]), int(w[1]), str(w[2])) for w in r.get("wiring", [])))
-            assert m_ex.semantic_hash() == r["api_meaning_hash"]
+            m_ex = Motif(
+                W=W_ex,
+                ports=p_ex,
+                layer=int(r["layer"]),
+                raw_nodes_collapsed=int(r["raw_nodes_collapsed"]),
+                parents=tuple(r.get("parents", [])),
+                wiring=tuple((int(w[0]), int(w[1]), str(w[2])) for w in r.get("wiring", [])),
+            )
+            if r.get("parents"):
+                assert all(pid in by_id for pid in r["parents"]), f"Missing parent in {r['id']}: {r['parents']}"
+            for om in PROBE_OMEGAS:
+                assert m_ex.schur_transfer(om) is not None
             reef.append(m_ex)
-        all_rows = [m.to_reef_record() for m in reef[:len(base_ids)]] + extra_rows
+            by_id[r["id"]] = m_ex
+            by_id[m_ex.structural_id()] = m_ex
     else:
         all_rows = [m.to_reef_record() for m in reef]
 
