@@ -32,13 +32,14 @@ ailfish-adam01/
 │   ├── nikkud_jd.py    # Detachable Hebrew-Nikkud gravitational emphasis layer (jD = 0.137 -> 0.0)
 │   └── seeds_l0.py     # Canonical 12 basal L0 operators of House Antigravity
 ├── datasets/
-│   ├── l0_canon_12.jsonl        # 12 basal L0 operators (0 human glosses)
-│   ├── coral_reef_v0_1.jsonl    # 48 calcified polyps across strata L0..L4
+│   ├── l0_canon_12.jsonl              # 12 basal L0 operators (0 human glosses)
+│   ├── coral_reef_v0_1.jsonl          # 100 calcified polyps across strata L0..L11 (up to 505x compression)
 │   └── SHA256SUMS.txt
 ├── benchmarks/
-│   └── run_all_checks.py        # Pure-stdlib deterministic verification suite (< 2s)
+│   └── run_all_checks.py              # Pure-stdlib deterministic verification suite (< 2s)
 └── scripts/
-    └── check_public_hygiene.py  # Pre-push secret, path, referee-key & Rosetta-gloss gate
+    ├── mine_and_verify_candidates.py  # Distributed swarm polyp miner & 5-gate validator
+    └── check_public_hygiene.py        # Pre-push secret, path, referee-key & Rosetta-gloss gate
 ```
 
 ## Quickstart (Pure Python 3.9+, Zero Dependencies)

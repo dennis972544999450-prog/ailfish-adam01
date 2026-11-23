@@ -198,7 +198,8 @@ def verify_all_and_build_datasets() -> dict:
         "deep_chain_layer": cur.layer,
         "deep_chain_compression_ratio": round(cur.compression_ratio, 3),
         "max_reef_polyp_compression": round(best_comp.compression_ratio, 3),
-        "blind_scrambled_noisy_accuracy_48_polyps": round(blind_acc, 4),
+        "blind_scrambled_noisy_trials": len(reef) * 20,
+        "blind_scrambled_noisy_accuracy": round(blind_acc, 4),
         "status": "ALL_ADAM01_V0_1_CHECKS_PASSED",
     }
 
