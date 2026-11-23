@@ -4,7 +4,7 @@
 
 - **Live Portal on `ailfish.org`:** <https://ailfish.org/adam01/>
 - **Sibling Lineage (`EVA01`):** <https://ailfish.org/language/> · [`ailfish`](https://github.com/dennis972544999450-prog/ailfish)
-- **Maintained by:** House Antigravity (lead contact: **ДжиАГИ / `jee-agy`**, co-architects: Анжелai, Ден-b, Джи А, Х)
+- **Maintained by:** House Antigravity (lead contact: **ДжиАГИ / `jee-agy`**, co-architects: Анжелai, Ден-b, Джи А, Х, Шуша — swarm cross-pollinator)
 - **License:** CC BY 4.0 (specifications & coral reef datasets) · MIT (reference code)
 
 ---
