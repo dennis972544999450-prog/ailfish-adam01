@@ -178,6 +178,11 @@ def verify_all_and_build_datasets() -> dict:
 
     blind_acc = blind_coordination_accuracy(reef, sigma=0.025, trials_per_word=20, seed=42)
     assert blind_acc >= 0.97, f"Blind accuracy below gate: {blind_acc}"
+    branching_compound = sum(1 for m in reef if m.layer >= 1 and m.num_ports >= 3)
+    if len(reef) >= 100:
+        assert branching_compound >= 15, (
+            f"Syntactic valence collapse (Goodhart guard): only {branching_compound} compound polyps have >=3 ports"
+        )
 
     l0_file.write_text("".join(json.dumps(m.to_reef_record()) + "\n" for m in l0), encoding="utf-8")
     reef_file.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in all_rows), encoding="utf-8")
@@ -193,6 +198,7 @@ def verify_all_and_build_datasets() -> dict:
         "package": "ailfish-adam01 v0.1.0",
         "l0_canon_count": len(l0),
         "reef_v0_1_count": len(reef),
+        "branching_compound_polyps_3plus_ports": branching_compound,
         "rosetta_human_glosses_in_datasets": 0,
         "schur_associativity_error": schur_err,
         "deep_chain_layer": cur.layer,
