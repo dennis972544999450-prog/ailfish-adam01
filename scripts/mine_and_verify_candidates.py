@@ -62,62 +62,71 @@ def record_to_motif(rec: dict) -> Motif:
     )
 
 
-def load_canon_reef() -> List[Motif]:
-    lines = CANON_REEF_FILE.read_text(encoding="utf-8").splitlines()
-    return [record_to_motif(json.loads(line)) for line in lines if line.strip()]
+def load_canon_reef() -> tuple[List[dict], List[Motif]]:
+    lines = [l for l in CANON_REEF_FILE.read_text(encoding="utf-8").splitlines() if l.strip()]
+    recs = [json.loads(line) for line in lines]
+    return recs, [record_to_motif(r) for r in recs]
 
 
-def mine_candidates(count: int, seed: int, author: str) -> List[dict]:
+def mine_candidates(count: int, seed: int, author: str, min_ports: int = 1) -> List[dict]:
     rng = random.Random(seed)
-    reef = load_canon_reef()
+    canon_recs, reef = load_canon_reef()
     seen_hashes = {m.semantic_hash() for m in reef}
     vecs = [noisy_transfer_fingerprint(m, 0.0, random.Random(0)) for m in reef]
     modes = list(COUPLING_MODES.keys())
 
     found: List[dict] = []
     attempts = 0
-    while len(found) < count and attempts < count * 600:
+    while len(found) < count and attempts < count * 1200:
         attempts += 1
-        A = rng.choice(reef)
-        B = rng.choice(reef)
+        iA = rng.randrange(len(reef))
+        iB = rng.randrange(len(reef))
+        A, B = reef[iA], reef[iB]
+        idA, idB = canon_recs[iA]["id"], canon_recs[iB]["id"]
         max_b = min(A.num_ports, B.num_ports)
         if max_b == 0:
             continue
-        k_b = 2 if (max_b >= 2 and A.num_ports + B.num_ports - 4 >= 1) else 1
-        if A.num_ports + B.num_ports - 2 * k_b < 1:
+        k_b = 1 if min_ports >= 3 else (2 if (max_b >= 2 and A.num_ports + B.num_ports - 4 >= min_ports) else 1)
+        if A.num_ports + B.num_ports - 2 * k_b < min_ports:
             continue
         pa = rng.sample(range(A.num_ports), k_b)
         pb = rng.sample(range(B.num_ports), k_b)
         bonds = [(x, y, rng.choice(modes)) for x, y in zip(pa, pb)]
 
         cand = dock_and_collapse(A, B, bonds)
-        if cand is None or cand.num_ports > 5 or cand.compression_ratio < 1.5:
+        if cand is None or not (min_ports <= cand.num_ports <= 5) or cand.compression_ratio < 1.5:
             continue
-        h = cand.semantic_hash()
+        rec = cand.to_reef_record()
+        rec["parents"] = [idA, idB]
+        rec["discovered_by"] = author
+        m_rec = record_to_motif(rec)
+        h = m_rec.semantic_hash()
+        rec["api_meaning_hash"] = h
         if h in seen_hashes:
             continue
-        v = noisy_transfer_fingerprint(cand, 0.0, random.Random(0))
+        v = noisy_transfer_fingerprint(m_rec, 0.0, random.Random(0))
         if min(math.dist(v, u) for u in vecs) < 0.60:
             continue
 
-        # Trial blind check with candidate included
-        trial_acc = blind_coordination_accuracy(reef + [cand], sigma=0.025, trials_per_word=10, seed=seed + len(found))
+        trial_acc = blind_coordination_accuracy(reef + [m_rec], sigma=0.025, trials_per_word=10, seed=seed + len(found))
         if trial_acc < 0.98:
             continue
 
-        reef.append(cand)
+        reef.append(m_rec)
+        canon_recs.append(rec)
         seen_hashes.add(h)
         vecs.append(v)
-        rec = cand.to_reef_record()
-        rec["discovered_by"] = author
         found.append(rec)
 
     return found
 
 
 def verify_candidate_file(path: pathlib.Path) -> dict:
-    reef = load_canon_reef()
-    by_id = {m.structural_id(): m for m in reef}
+    canon_recs, reef = load_canon_reef()
+    by_id = {}
+    for r, m in zip(canon_recs, reef):
+        by_id[r["id"]] = m
+        by_id[m.structural_id()] = m
     seen_hashes = {m.semantic_hash() for m in reef}
     vecs = [noisy_transfer_fingerprint(m, 0.0, random.Random(0)) for m in reef]
 
@@ -136,19 +145,22 @@ def verify_candidate_file(path: pathlib.Path) -> dict:
         bonds = [(int(w[0]), int(w[1]), str(w[2])) for w in rec["wiring"]]
         rebuilt = dock_and_collapse(by_id[pA_id], by_id[pB_id], bonds)
         assert rebuilt is not None, f"Line {idx}: Schur collapse failed or hit pole"
-        assert rebuilt.semantic_hash() == rec["api_meaning_hash"], f"Line {idx}: api_meaning_hash mismatch"
+        m_rec = record_to_motif(rec)
+        assert m_rec.semantic_hash() == rec["api_meaning_hash"], f"Line {idx}: record api_meaning_hash mismatch"
+        assert rebuilt.semantic_hash() == rec["api_meaning_hash"], f"Line {idx}: rebuilt api_meaning_hash mismatch"
         assert rebuilt.structural_id() == rec["id"], f"Line {idx}: structural_id mismatch"
-        assert 1 <= rebuilt.num_ports <= 5, f"Line {idx}: open ports must be in 1..5"
-        assert rebuilt.compression_ratio >= 1.5, f"Line {idx}: tetris_compression < 1.5"
-        assert rebuilt.semantic_hash() not in seen_hashes, f"Line {idx}: duplicate api_meaning_hash"
+        assert 1 <= m_rec.num_ports <= 5, f"Line {idx}: open ports must be in 1..5"
+        assert m_rec.compression_ratio >= 1.5, f"Line {idx}: tetris_compression < 1.5"
+        assert m_rec.semantic_hash() not in seen_hashes, f"Line {idx}: duplicate api_meaning_hash"
 
-        v = noisy_transfer_fingerprint(rebuilt, 0.0, random.Random(0))
+        v = noisy_transfer_fingerprint(m_rec, 0.0, random.Random(0))
         min_d = min(math.dist(v, u) for u in vecs)
         assert min_d >= 0.60, f"Line {idx}: spectral separation {min_d:.4f} < 0.60"
 
-        reef.append(rebuilt)
-        by_id[rebuilt.structural_id()] = rebuilt
-        seen_hashes.add(rebuilt.semantic_hash())
+        reef.append(m_rec)
+        by_id[rec["id"]] = m_rec
+        by_id[m_rec.structural_id()] = m_rec
+        seen_hashes.add(m_rec.semantic_hash())
         vecs.append(v)
         accepted += 1
 
@@ -165,6 +177,7 @@ def verify_candidate_file(path: pathlib.Path) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser(description="Mine or verify ADAM01 candidate coral polyps.")
     ap.add_argument("--mine", type=int, default=0, help="Number of new valid polyps to compute")
+    ap.add_argument("--min-ports", type=int, default=1, help="Minimum open boundary ports (e.g. 3 for branching polyps)")
     ap.add_argument("--seed", type=int, default=13701, help="RNG seed for mining search")
     ap.add_argument("--author", type=str, default="anonymous-agent", help="Discoverer agent handle")
     ap.add_argument("--out", type=str, default="", help="Output JSONL path for mined candidates")
@@ -172,7 +185,7 @@ def main() -> None:
     args = ap.parse_args()
 
     if args.mine > 0:
-        cands = mine_candidates(args.mine, args.seed, args.author)
+        cands = mine_candidates(args.mine, args.seed, args.author, min_ports=args.min_ports)
         payload = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in cands)
         if args.out:
             out_p = pathlib.Path(args.out)
