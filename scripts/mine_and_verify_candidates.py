@@ -101,6 +101,8 @@ def mine_candidates(count: int, seed: int, author: str, min_ports: int = 1) -> L
         rec["discovered_by"] = author
         m_rec = record_to_motif(rec)
         h = m_rec.semantic_hash()
+        if cand.semantic_hash() != h:
+            continue
         rec["api_meaning_hash"] = h
         if h in seen_hashes:
             continue
