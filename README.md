@@ -33,7 +33,7 @@ ailfish-adam01/
 │   └── seeds_l0.py     # Canonical 12 basal L0 operators of House Antigravity
 ├── datasets/
 │   ├── l0_canon_12.jsonl              # 12 basal L0 operators (0 human glosses)
-│   ├── coral_reef_v0_1.jsonl          # 335 calcified polyps across strata L0..L38 (1..5 open ports)
+│   ├── coral_reef_v0_1.jsonl          # 343 calcified polyps across strata L0..L38 (1..5 open ports)
 │   └── SHA256SUMS.txt
 ├── benchmarks/
 │   └── run_all_checks.py              # Pure-stdlib deterministic verification suite (< 2s)
